@@ -1,0 +1,9 @@
+# 双保险：即便 files 白名单将来被改宽，也不让私人日程数据发出去
+calendar.json
+web/calendar.json
+web/calendar.json.tmp.*
+node_modules/
+*.tgz
+typecheck/
+scripts/
+tsconfig.typecheck.json

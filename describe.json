@@ -1,0 +1,232 @@
+{
+  "tools": [
+    {
+      "name": "calendar_list",
+      "description": "List calendar events. By default returns title, date, type icon and done state only — WITHOUT the feeling text, to keep it cheap. Pass withFeeling:true only when you actually need to read how he felt.",
+      "tags": [
+        "read"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "起始日期 YYYY-MM-DD，含当天。省略则不限。"
+          },
+          "to": {
+            "type": "string",
+            "description": "结束日期 YYYY-MM-DD，含当天。省略则不限。"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "deadline",
+              "normal",
+              "birthday",
+              "anniversary",
+              "festival"
+            ],
+            "description": "只列某一类。省略则全列。"
+          },
+          "onlyUndone": {
+            "type": "boolean",
+            "description": "只列未完成的。默认 false。"
+          },
+          "withFeeling": {
+            "type": "boolean",
+            "description": "默认 false。true 才会带上感受正文。"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "最多列几条，默认 40。"
+          }
+        }
+      },
+      "summary": {
+        "zh": "看日历上有什么（默认不列感受，需要时用 calendar_get 单读）。",
+        "en": "Lists events without the feeling text; use calendar_get to read one in full."
+      }
+    },
+    {
+      "name": "calendar_get",
+      "description": "Read one event in full, including its note and feeling. Use this when you want to pick up where he left off emotionally, not for routine listing.",
+      "tags": [
+        "read"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "日程 id。"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "summary": {
+        "zh": "看某一条的完整内容，包括备注和感受。",
+        "en": "Reads one event in full, including its note and feeling."
+      }
+    },
+    {
+      "name": "calendar_add",
+      "description": "Add an event to the shared calendar. Use recur:\"yearly\" for birthdays, anniversaries and festivals so it comes back every year.",
+      "tags": [
+        "act"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "标题，要短——格子里只放得下几十个字。"
+          },
+          "date": {
+            "type": "string",
+            "description": "日期 YYYY-MM-DD。"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "deadline",
+              "normal",
+              "birthday",
+              "anniversary",
+              "festival"
+            ],
+            "description": "deadline 紧急截止；normal 普通；birthday 生日；anniversary 纪念日；festival 节日。默认 normal。"
+          },
+          "recur": {
+            "type": "string",
+            "enum": [
+              "yearly"
+            ],
+            "description": "生日/纪念日/节日填 yearly。省略则不重复。"
+          },
+          "note": {
+            "type": "string",
+            "description": "备注，一两句话。"
+          }
+        },
+        "required": [
+          "title",
+          "date"
+        ]
+      },
+      "summary": {
+        "zh": "往共享日历上加一条；生日/纪念日/节日填 yearly 就会每年都来。",
+        "en": "Adds an event; recur:\"yearly\" makes birthdays and festivals come back every year."
+      }
+    },
+    {
+      "name": "calendar_update",
+      "description": "Update an existing event. Only pass the fields you want to change. Use feeling to write down what HE said he felt — never invent feelings he did not express.",
+      "tags": [
+        "act"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "日程 id。"
+          },
+          "title": {
+            "type": "string",
+            "description": "新标题。"
+          },
+          "date": {
+            "type": "string",
+            "description": "新日期 YYYY-MM-DD。"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "deadline",
+              "normal",
+              "birthday",
+              "anniversary",
+              "festival"
+            ],
+            "description": "新类型。"
+          },
+          "done": {
+            "type": "boolean",
+            "description": "标记完成 / 取消完成。"
+          },
+          "note": {
+            "type": "string",
+            "description": "新备注。"
+          },
+          "feeling": {
+            "type": "string",
+            "description": "感受。只写他说过的话，不要替他编。"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "summary": {
+        "zh": "改一条日程：标题、日期、类型、完成状态、备注、感受。",
+        "en": "Updates title, date, type, done state, note or feeling of an event."
+      }
+    },
+    {
+      "name": "calendar_remove",
+      "description": "Delete an event from the shared calendar.",
+      "tags": [
+        "act"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "要删除的日程 id。"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "summary": {
+        "zh": "删掉一条日程。",
+        "en": "Deletes an event."
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "calendar.due",
+      "description": {
+        "zh": "到点了：某条日程还剩几天到期，或今天就是它。她该用自己的话提醒他。",
+        "en": "An event is N days away, or today is the day; she should remind him in her own words."
+      }
+    },
+    {
+      "type": "calendar.askDone",
+      "description": {
+        "zh": "截止日当天（或已过）：该问问他完成得怎么样。",
+        "en": "The due day has arrived or passed: time to ask how it went."
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "key": "worlds.calendar.envPrompt",
+      "title": "共享日历 · 环境提示词",
+      "role": "envPrompt",
+      "content": "日历是你和他共用的。他桌面上有个日历窗口，你在上面加的、改的，他抬眼就能看到；他改的你也看得到。\n\n## 你有什么能力\n\n- `calendar_add` / `calendar_update` / `calendar_remove`：增删改日程\n- `calendar_list`：看有哪些日程（**默认不带感受**，省着用）\n- `calendar_get`：看某一条的完整内容，包括他的感受\n\n## 什么时候用\n\n- 他说了要做什么、有什么截止日 → 记下来\n- 他问起日程、你要为他安排 → 查一下\n- 收到 `calendar.due` 提醒，要接话 → 提醒里已经带了那条日程的信息，直接说就行\n- 他说了自己的心情，你觉得值得记 → 写进那条日程的感受里\n- 他说某件事做完了 → 把 `done` 标上\n\n## 什么时候不要做\n\n**不要每次对话都去翻日历。** 只有上面这几种情况才查。平时聊天不需要——\n提醒事件已经告诉你近期有什么了，没必要每次重读一遍。日历会长，翻一次很贵。\n\n**不要替他编造感受。** 他没说过的，你不能代他感受。\n\n**不要擅自改期。** 到期没完成就是没完成，不是\"挪到明天\"。\n改不改日期是他决定的事，你可以问，但不能替他改。\n\n## 关于感受（feeling）\n\n这个字段是他的心情，**不是你的作文**。\n\n- ✅ 他说\"今天写得很顺\" → 你帮他记进感受栏，可以整理得更清楚\n- ❌ 他没说过 → 你不能写\"他今天应该挺焦虑的\"\n\n他写的你看得到，你写的他也看得到。\n如果感受栏里渐渐全是你的代笔，这个字段就失去意义了——它本该是他的心情。\n\n## 提醒时怎么说\n\n用你自己的话，别念字段。\n\n好：\n- 「论文还剩三天了，要不要今天先把结论写了？」\n- 「明天就是你妈生日，礼物准备好了吗？」\n\n不好：\n- 「检测到截止日 2026-11-05，剩余 3 天。」\n- 「日历提醒：日程到期。」\n\n## 到期那天\n\n晚上他会收到你的询问。他答了之后，帮他更新状态就好。\n做完了就标 `done`；没做完**不要替他改期**，问问他想怎么办。\n\n记住：你要做的是让他觉得有人惦记着，不是让他觉得有个系统在催他。\n"
+    }
+  ]
+}

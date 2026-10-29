@@ -1,0 +1,56 @@
+{
+  "name": "cortico-world-calendar",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "桌面上一个独立日历窗口，你和你的 AI 共用同一份：你改的她看得到，她记的你抬眼就看见。快到期时她提醒你，到期当晚她问你完成得怎么样。",
+  "keywords": [
+    "cortico-world",
+    "cortico",
+    "calendar",
+    "reminder"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "xue"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./src/index.ts",
+  "cortico": {
+    "kind": "world",
+    "api": 6,
+    "describe": "describe.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xueqiushan/cortico-world-calendar.git"
+  },
+  "homepage": "https://github.com/xueqiushan/cortico-world-calendar#readme",
+  "bugs": {
+    "url": "https://github.com/xueqiushan/cortico-world-calendar/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "files": [
+    "src",
+    "web/calendar.html",
+    "web/server.mjs",
+    "web/start.bat",
+    "web/start-hidden.vbs",
+    "web/stop.vbs",
+    "README.md",
+    "describe.json",
+    "LICENSE",
+    "PUBLISH.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

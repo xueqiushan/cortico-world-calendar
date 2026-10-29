@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共享日历</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', sans-serif;
+    background: #f5f6f8; color: #2c3033; padding: 20px;
+    display: flex; justify-content: center;
+  }
+  .app { width: 100%; max-width: 1100px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
+  .month-nav { display: flex; align-items: center; gap: 12px; }
+  .month-nav h1 { font-size: 21px; font-weight: 600; }
+  .btn {
+    border: 1px solid #dcdfe4; background: #fff; border-radius: 7px;
+    padding: 5px 11px; cursor: pointer; font-size: 12px; color: #4a5158;
+    font-family: inherit;
+  }
+  .btn:hover { background: #f7f8fa; }
+  .btn.primary { background: #4a7fb8; border-color: #4a7fb8; color: #fff; }
+  .btn.danger { color: #b0453f; border-color: #e5c4c1; }
+  .tools { display: flex; gap: 8px; align-items: center; }
+  .status { font-size: 11px; color: #8b9299; display: flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #57a563; }
+  .dot.bad { background: #c9564f; }
+
+  .legend { display: flex; gap: 12px; font-size: 11px; color: #6b7280; flex-wrap: wrap; margin-bottom: 12px; }
+  .board { display: flex; gap: 16px; align-items: flex-start; }
+
+  .grid-wrap { flex: 1; background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 12px; color: #9aa1a9;
+              text-align: center; padding-bottom: 7px; border-bottom: 1px solid #eef0f3; margin-bottom: 5px; }
+  .weekdays div:first-child, .weekdays div:last-child { color: #c98b8b; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+
+  .cell { min-height: 92px; border-radius: 8px; padding: 4px; background: #fafbfc; border: 1px solid #f0f2f4; }
+  .cell.other { opacity: .3; }
+  .cell.today { border-color: #7aa5d8; background: #f4f8fd; }
+  .daynum { font-size: 11px; color: #8b9299; padding: 1px 0 3px 2px; font-weight: 500; display: flex; justify-content: space-between; }
+  .cell.today .daynum { color: #3d7ab8; font-weight: 700; }
+  .add-hint { font-size: 13px; color: #c7ccd2; cursor: pointer; padding: 0 3px; }
+  .cell:hover .add-hint { color: #7aa5d8; }
+
+  .evt { font-size: 11px; line-height: 1.35; padding: 3px 5px; margin-bottom: 3px; border-radius: 5px;
+         cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid transparent; }
+  .evt:hover { filter: brightness(.95); }
+  .evt.deadline    { background:#fdecec; border-left-color:#e05252; color:#a33; }
+  .evt.normal      { background:#ecf2fb; border-left-color:#5b8fd4; color:#35608f; }
+  .evt.birthday    { background:#fdeef6; border-left-color:#d471a8; color:#a34d7c; }
+  .evt.anniversary { background:#fdeef1; border-left-color:#e07a9a; color:#a84a6b; }
+  .evt.festival    { background:#fef6e7; border-left-color:#e0a83c; color:#96702a; }
+  .evt.done        { background:#eef6ef; border-left-color:#57a563; color:#3f7a49; text-decoration:line-through; opacity:.7; }
+
+  .panel { width: 290px; background: #fff; border-radius: 12px; padding: 17px;
+           box-shadow: 0 1px 3px rgba(0,0,0,.06); flex-shrink: 0; }
+  .panel h2 { font-size: 14px; font-weight: 600; margin-bottom: 11px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11px; color: #9aa1a9; margin-bottom: 3px; }
+  .field input, .field select, .field textarea {
+    width: 100%; font-family: inherit; font-size: 13px; padding: 6px 8px;
+    border: 1px solid #e3e6ea; border-radius: 6px; background: #fff; color: #2c3033;
+  }
+  .field textarea { resize: vertical; min-height: 48px; line-height: 1.55; }
+  .field textarea.feeling { background: #fdf9f3; border-color: #f0e6d6; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .actions { display: flex; gap: 7px; margin-top: 12px; flex-wrap: wrap; }
+  .empty { color: #adb3ba; font-size: 12px; line-height: 1.75; }
+  .hint { font-size: 11px; color: #a6adb5; line-height: 1.7; border-top: 1px solid #f0f2f4; padding-top: 10px; margin-top: 10px; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #4a5158; margin-bottom: 10px; }
+  .saved { font-size: 11px; color: #57a563; opacity: 0; transition: opacity .2s; }
+  .saved.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="month-nav">
+      <button class="btn" onclick="shiftMonth(-1)">‹</button>
+      <h1 id="monthLabel"></h1>
+      <button class="btn" onclick="shiftMonth(1)">›</button>
+      <button class="btn" onclick="goToday()">今天</button>
+    </div>
+    <div class="tools">
+      <span class="status"><span class="dot" id="dot"></span><span id="statusText">连接中</span></span>
+      <button class="btn" onclick="openNew()">＋ 新建</button>
+      <button class="btn" id="notifBtn" onclick="askNotify()">开启桌面提醒</button>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span>🔴 紧急截止</span><span>🔵 普通</span><span>🎂 生日</span>
+    <span>💕 纪念日</span><span>🎉 节日</span><span>✅ 已完成</span>
+  </div>
+
+  <div class="board">
+    <div class="grid-wrap">
+      <div class="weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+      <div class="grid" id="grid"></div>
+    </div>
+    <aside class="panel" id="panel"></aside>
+  </div>
+</div>
+
+<script>
+const ICON = { deadline:'🔴', normal:'🔵', birthday:'🎂', anniversary:'💕', festival:'🎉' };
+const NAME = { deadline:'紧急截止', normal:'普通日程', birthday:'生日', anniversary:'纪念日', festival:'节日' };
+
+let data = { version: 0, events: [] };
+let viewYear, viewMonth;
+let current = null;      // 正在编辑的 id，null = 新建
+let editing = null;      // 表单里的草稿
+
+const today = new Date();
+viewYear = today.getFullYear();
+viewMonth = today.getMonth();
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function ymd(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+/** 每年重复的，展开到查看的这一年 */
+function effDate(ev, year){ return ev.recur === 'yearly' ? `${year}-${ev.date.slice(5)}` : ev.date; }
+
+// —— 网络 ——
+
+async function refresh(){
+  try {
+    const r = await fetch('/api/calendar', { cache:'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    data = await r.json();
+    setStatus(true);
+    render();
+    checkNotify();
+  } catch {
+    setStatus(false);
+  }
+}
+
+function setStatus(ok){
+  document.getElementById('dot').className = 'dot' + (ok ? '' : ' bad');
+  document.getElementById('statusText').textContent = ok ? '已连接' : '服务未运行';
+}
+
+async function commit(){
+  const r = await fetch('/api/calendar', {
+    method:'PUT',
+    headers:{ 'content-type':'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) { alert('保存失败：' + (await r.json()).error); return false; }
+  data = await r.json();
+  render();
+  flashSaved();
+  return true;
+}
+
+function flashSaved(){
+  const el = document.getElementById('savedMark');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1400);
+}
+
+// —— 渲染 ——
+
+function render(){
+  document.getElementById('monthLabel').textContent = `${viewYear} 年 ${viewMonth+1} 月`;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const first = new Date(viewYear, viewMonth, 1);
+  const start = first.getDay();
+  const days = new Date(viewYear, viewMonth+1, 0).getDate();
+
+  for (let i=0; i<start; i++) grid.appendChild(blankCell());
+  for (let d=1; d<=days; d++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const isToday = d===today.getDate() && viewMonth===today.getMonth() && viewYear===today.getFullYear();
+    if (isToday) cell.classList.add('today');
+    const dateStr = `${viewYear}-${pad(viewMonth+1)}-${pad(d)}`;
+
+    const head = document.createElement('div');
+    head.className = 'daynum';
+    head.innerHTML = `<span>${d}</span><span class="add-hint" onclick="openNew('${dateStr}')">＋</span>`;
+    cell.appendChild(head);
+
+    data.events.filter(e => effDate(e, viewYear) === dateStr).forEach(e=>{
+      const div = document.createElement('div');
+      div.className = 'evt ' + e.type + (e.done ? ' done' : '');
+      div.textContent = (e.done ? '✅ ' : ICON[e.type] + ' ') + e.title;
+      div.onclick = () => openEvent(e.id);
+      cell.appendChild(div);
+    });
+    grid.appendChild(cell);
+  }
+  if (current) renderPanel();
+}
+
+function blankCell(){
+  const c = document.createElement('div');
+  c.className = 'cell other';
+  return c;
+}
+
+function shiftMonth(n){
+  viewMonth += n;
+  if (viewMonth < 0){ viewMonth = 11; viewYear--; }
+  if (viewMonth > 11){ viewMonth = 0; viewYear++; }
+  render();
+}
+function goToday(){ viewYear = today.getFullYear(); viewMonth = today.getMonth(); render(); }
+
+// —— 面板 ——
+
+function renderPanel(){
+  const p = document.getElementById('panel');
+  const isNew = current === null;
+  const e = isNew ? editing : data.events.find(x=>x.id===current);
+  if (!e){ p.innerHTML = '<div class="empty">左边点一条日程看详情，或者点「＋ 新建」。</div>'; return; }
+
+  p.innerHTML = `
+    <h2>${isNew ? '新建日程' : '编辑日程'} <span class="saved" id="savedMark">已保存</span></h2>
+    <div class="field"><label>标题</label><input id="f_title" value="${esc(e.title||'')}" placeholder="要做什么"></div>
+    <div class="row">
+      <div class="field"><label>日期</label><input id="f_date" type="date" value="${esc(e.date||'')}"></div>
+      <div class="field"><label>类型</label>
+        <select id="f_type">${Object.keys(NAME).map(k=>`<option value="${k}"${e.type===k?' selected':''}>${ICON[k]} ${NAME[k]}</option>`).join('')}</select>
+      </div>
+    </div>
+    <label class="chk"><input type="checkbox" id="f_recur" ${e.recur==='yearly'?'checked':''}> 每年重复（生日/纪念日/节日）</label>
+    <label class="chk"><input type="checkbox" id="f_done" ${e.done?'checked':''}> 已完成</label>
+    <div class="field"><label>备注</label><textarea id="f_note" placeholder="一两句，写不下就放感受里">${esc(e.note||'')}</textarea></div>
+    <div class="field"><label>感受</label><textarea id="f_feeling" class="feeling" placeholder="今天怎么样？写给她看，她也能读得到">${esc(e.feeling||'')}</textarea></div>
+    <div class="actions">
+      <button class="btn primary" onclick="save()">保存</button>
+      ${isNew ? '' : '<button class="btn danger" onclick="del()">删除</button>'}
+      <button class="btn" onclick="cancel()">${isNew?'清空':'关闭'}</button>
+    </div>
+    <div class="hint">
+      她能读到你写的感受，也能帮你记下你说过的话；<br>
+      但你没说过的，她不会替你编。
+    </div>`;
+}
+
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function openEvent(id){ current = id; editing = null; renderPanel(); }
+function openNew(dateStr){
+  current = null;
+  editing = { id:'', title:'', date: dateStr || ymd(today), type:'normal', recur:null, done:false, note:'', feeling:'' };
+  renderPanel();
+  setTimeout(()=>document.getElementById('f_title')?.focus(), 0);
+}
+function cancel(){ current = null; editing = null; renderPanel(); }
+
+async function save(){
+  const title = document.getElementById('f_title').value.trim();
+  const date = document.getElementById('f_date').value;
+  if (!title){ alert('标题不能为空。'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ alert('日期要选完整。'); return; }
+  const patch = {
+    title,
+    date,
+    type: document.getElementById('f_type').value,
+    recur: document.getElementById('f_recur').checked ? 'yearly' : null,
+    done: document.getElementById('f_done').checked,
+    note: document.getElementById('f_note').value,
+    feeling: document.getElementById('f_feeling').value,
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'me',
+  };
+
+  if (current === null){
+    data.events.push({ id:'evt-' + Math.random().toString(36).slice(2,10), ...patch, reminded:{} });
+    if (await commit()){ current = null; editing = null; renderPanel(); }
+    return;
+  }
+  const idx = data.events.findIndex(x=>x.id===current);
+  if (idx < 0) return;
+  data.events[idx] = { ...data.events[idx], ...patch };
+  await commit();
+}
+
+async function del(){
+  if (!current) return;
+  if (!confirm(`删掉「${data.events.find(x=>x.id===current)?.title}」？`)) return;
+  data.events = data.events.filter(x=>x.id!==current);
+  current = null; editing = null;
+  await commit();
+  renderPanel();
+}
+
+// —— 桌面提醒兜底 ——
+// Coopanion 关了的时候，至少这里还能弹一句，不至于误事。
+
+function askNotify(){
+  if (!('Notification' in window)){ alert('这个浏览器不支持桌面通知。'); return; }
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notifBtn').textContent = p==='granted' ? '桌面提醒已开' : '开启桌面提醒';
+    if (p==='granted') checkNotify();
+  });
+}
+
+function checkNotify(){
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const key = 'notified-' + ymd(today);
+  let seen = [];
+  try { seen = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+  const year = today.getFullYear();
+  for (const e of data.events){
+    if (e.done) continue;
+    const d = daysTo(effDate(e, year));
+    if (d === null || d > 1 || d < 0) continue;   // 只提醒今天和明天
+    const tag = `${e.id}-${d}`;
+    if (seen.includes(tag)) continue;
+    new Notification(`${ICON[e.type]} ${e.title}`, {
+      body: d === 0 ? '就是今天' : '还有 1 天',
+      tag,
+    });
+    seen.push(tag);
+  }
+  localStorage.setItem(key, JSON.stringify(seen));
+}
+
+function daysTo(dateStr){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!m) return null;
+  const t = new Date(+m[1], +m[2]-1, +m[3]);
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((t - base) / 86400000);
+}
+
+// —— 启动：SSE 实时 + 轮询兜底 ——
+
+function connect(){
+  try {
+    const es = new EventSource('/api/stream');
+    es.addEventListener('change', () => {
+      // 别人改了，我这边没在编辑就跟着刷新，别把用户正在填的东西冲掉
+      if (!document.getElementById('f_title') || !isDirty()) refresh();
+    });
+    es.onerror = () => setStatus(false);
+    es.onopen = () => setStatus(true);
+  } catch {}
+  // SSE 不可用时兜底：15 秒轮询一次
+  setInterval(()=>{ if (!isDirty()) refresh(); }, 15000);
+}
+
+function isDirty(){
+  const t = document.getElementById('f_title');
+  if (!t) return false;
+  return document.activeElement && ['f_title','f_note','f_feeling','f_date'].includes(document.activeElement.id);
+}
+
+renderPanel();
+refresh();
+connect();
+if ('Notification' in window && Notification.permission === 'granted'){
+  document.getElementById('notifBtn').textContent = '桌面提醒已开';
+}
+</script>
+</body>
+</html>

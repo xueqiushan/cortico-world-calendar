@@ -1,0 +1,7 @@
+# 私人日程数据 —— 不要推到公开仓库
+web/calendar.json
+
+# 依赖与临时产物
+node_modules/
+*.tgz
+web/calendar.json.tmp.*

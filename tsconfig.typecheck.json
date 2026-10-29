@@ -1,0 +1,28 @@
+/**
+ * 本地类型自检用的 tsconfig。
+ *
+ * Coopanion 的 cortico 类型定义只存在于它的进程里，这边 import 不到，
+ * 所以用 typecheck/stubs 下的桩顶上（形状照 presence 源码里出现过的写）。
+ * 目的不是"编译通过"，而是抓出自己代码里的字段名写错、类型对不上——
+ * 这类错误在真机上表现为加载失败，查起来很贵。
+ */
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "typeRoots": ["/usr/local/lib/node_modules/@types"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "cortico/*": ["typecheck/stubs/cortico/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "typecheck/stubs/**/*.ts"]
+}
